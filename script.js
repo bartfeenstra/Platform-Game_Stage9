@@ -76,6 +76,9 @@ Smc.playerTypes.Player = function (name, phaserObject) {
     this._trailBlazeEmitter.makeParticles( [ 'fire1', 'fire2', 'fire3', 'smoke' ] );
     this._trailBlazeEmitter.gravity = 800;
     this._trailBlazeEmitter.setAlpha(1, 0, 3000);
+
+    // Ensure the character itself is never hidden by the other sprites that belong to it.
+    this._phaserObject.bringToTop();
 }
 
 /**
