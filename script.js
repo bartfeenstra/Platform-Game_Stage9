@@ -142,8 +142,7 @@ Smc.playerTypes.Player.prototype.moveDown = function() {
  * Responds to player movement.
  */
 Smc.playerTypes.Player.prototype._onMove = function() {
-    this._weaponMountPhaserObject.y =   this._phaserObject.y;
-    this._weaponMountPhaserObject.x =   this._phaserObject.x;
+    // This function can be overridden by objects using this prototype.
 }
 
 /**
@@ -157,6 +156,10 @@ Smc.playerTypes.Player.prototype.stopMoving = function() {
  * Fires the player's weapon.
  */
 Smc.playerTypes.Player.prototype.fireWeapon = function() {
+    // It appears to be impossible to reposition the weapon as soon as the character is moved through game forces such
+    // as gravity, so do we do it here, where it actually matters.
+    this._weaponMountPhaserObject.y =   this._phaserObject.y;
+    this._weaponMountPhaserObject.x =   this._phaserObject.x;
     this._weaponPhaserObject.fire();
 }
 
