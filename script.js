@@ -67,6 +67,14 @@ Smc.playerTypes.Player = function (name, phaserObject) {
 
     game.physics.arcade.enable(this._phaserObject)
 
+    // Set up the trail blaze.
+    this._trailBlazeEmitter = game.add.emitter(game.world.centerX, game.world.centerY, 400);
+    this._trailBlazeEmitter.makeParticles( [ 'fire1', 'fire2', 'fire3', 'smoke' ] );
+    this._trailBlazeEmitter.gravity = 800;
+    this._trailBlazeEmitter.setAlpha(1, 0, 3000);
+
+    // Ensure the character itself is never hidden by the other sprites that belong to it.
+    this._phaserObject.bringToTop();
 }
 
 /**
@@ -144,7 +152,15 @@ Smc.playerTypes.Player.prototype.moveDown = function() {
  * Responds to player movement.
  */
 Smc.playerTypes.Player.prototype._onMove = function() {
-    // This function can be overridden by objects using this prototype.
+    // Show the trail blaze.
+    var trailBlazeVelocityX = this._phaserObject.body.velocity.x * -1;
+    var trailBlazeVelocityY = this._phaserObject.body.velocity.y * -1;
+    this._trailBlazeEmitter.minParticleSpeed.set(trailBlazeVelocityX, trailBlazeVelocityY);
+    this._trailBlazeEmitter.maxParticleSpeed.set(trailBlazeVelocityX, trailBlazeVelocityY);
+    this._trailBlazeEmitter.emitX = this._phaserObject.x;
+    this._trailBlazeEmitter.emitY = this._phaserObject.y;
+    this._trailBlazeEmitter.setScale(0.1,0, 0.1,0, 3000);
+    this._trailBlazeEmitter.start(true, 100, null, 5);
 }
 
 /**
@@ -159,32 +175,8 @@ Smc.playerTypes.Player.prototype.fireWeapon = function() {
 }
 
 Smc.playerTypes.Student = (function() {
-    /**
-     * Responds to student movement.
-     */
-    var _onMove = function() {
-        Smc.playerTypes.Player.prototype._onMove.call(this);
-        var px = this._phaserObject.body.velocity.x;
-        var py = this._phaserObject.body.velocity.y;
-
-        px *= -1;
-        py *= -1;
-
-        emitter.minParticleSpeed.set(px, py);
-        emitter.maxParticleSpeed.set(px, py);
-
-        emitter.emitX = this._phaserObject.x;
-        emitter.emitY = this._phaserObject.y;
-
-        emitter.setScale(0.1,0, 0.1,0, 3000);
-
-        emitter.start(true, 100, null, 5);
-
-    };
-
     return function() {
         Smc.playerTypes.Player.call(this, "student", game.add.sprite(600,480, 'student'));
-        this._onMove = _onMove;
     };
 })();
 Smc.playerTypes.Student.prototype = Smc.playerTypes.Player.prototype;
@@ -236,7 +228,6 @@ var weightY= 345;
 
 var x = game.width/2;
 var y = game.height/2;
-var emitter;
 
 Smc.phaserEventHandlers.preload.push(function() {
     game.load.image('arm', 'assets/arm.png');
@@ -265,13 +256,6 @@ Smc.phaserEventHandlers.create.push(function() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
     game.stage.backgroundColor = '#333';
     game.add.tileSprite(-400,-400, 2000, 1600, 'background');
-    emitter = game.add.emitter(game.world.centerX, game.world.centerY, 400);
-
-    emitter.makeParticles( [ 'fire1', 'fire2', 'fire3', 'smoke' ] );
-
-
-    emitter.gravity = 800;
-    emitter.setAlpha(1, 0, 3000);
 
     student = new Smc.playerTypes.Student();
     mexican = new Smc.playerTypes.Mexican();
