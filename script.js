@@ -7,8 +7,197 @@ var Smc = {
         preload: [],
         create: [],
         update: []
-    }
+    },
+    playerTypes: {}
 };
+
+var game = new Phaser.Game(640,480, Phaser.AUTO, 'world', {
+    preload: buildPhaserEventHandler("preload"),
+    create: buildPhaserEventHandler("create"),
+    update: buildPhaserEventHandler("update")
+});
+
+/**
+ * A game player.
+ *
+ * @param {string} name
+ * @param {Phaser.Sprite} phaserObject
+ * @constructor
+ */
+Smc.playerTypes.Player = function (name, phaserObject) {
+    this._defense = 1;
+    this._name = name;
+    this._isGoingUp = false;
+    this._phaserObject = phaserObject;
+    game.physics.arcade.enable(this._phaserObject);
+    this._phaserObject.animations.add('left', ['left1', 'left2','left3', 'left4','left5', 'left6','left7', 'left8','left9']);
+    this._phaserObject.animations.add('right', ['right1', 'right2','right3', 'right4','right5', 'right6','right7', 'right8', 'right9']);
+    this._phaserObject.animations.add('up', ['up1', 'up2','up3', 'up4','up5', 'up6','up7', 'up8','up9']);
+    this._phaserObject.animations.add('down', ['down1', 'down2']);
+    this._phaserObject.animations.add('stop');
+    this._phaserObject.animations.play('stop', 5, true);
+    this._phaserObject.animations.play('stop', 5, true);
+    this._phaserObject.body.gravity.set(0, 180);
+    this._phaserObject.body.collideWorldBounds = true;
+    this._phaserObject.anchor.setTo(0.5, 0.5);
+
+    this._weaponMountPhaserObject = game.add.sprite( 600,480, 'pixel');
+    game.physics.arcade.enable(this._weaponMountPhaserObject);
+    this._weaponMountPhaserObject.body.enable          = true;
+    this._weaponMountPhaserObject.body.allowRotation   = true;
+
+    //  Creates 30 bullets, using the 'bullet' graphic
+    this._weaponPhaserObject = game.add.weapon(30, 'bullet');
+    game.physics.arcade.enable(this._weaponPhaserObject);
+    //  The bullet will be automatically killed when it leaves the world bounds
+    this._weaponPhaserObject.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+    //  The speed at which the bullet is fired
+    this._weaponPhaserObject.bulletSpeed = 600;
+    //  Speed-up the rate of fire, allowing them to shoot 1 bullet every 60ms
+    this._weaponPhaserObject.fireRate = 100;
+    //  Tell the Weapon to track the player
+    //  With no offsets from the position
+    //  But the 'true' argument tells the weapon to track sprite rotation
+    this._weaponPhaserObject.trackSprite(this._weaponMountPhaserObject, 0, 0, true);
+
+
+    this._id                  = 1;
+    this._phaserObject.maxHealth = 100;
+    this._phaserObject.health= 100;
+    this._phaserObject.hud = Phaser.Plugin.HUDManager.create(this._phaserObject.game, this._phaserObject, 'smc.player.hud.' + this._id);
+    this._healthHud           =this._phaserObject.hud.addBar(0, -20, 32, 2, this._phaserObject.maxHealth, 'health', this._phaserObject, Phaser.Plugin.HUDManager.HEALTHBAR, false);
+    this._healthHud.bar.anchor.setTo(0.5, 0.5);
+    this._phaserObject.addChild(this._healthHud.bar);
+
+    game.physics.arcade.enable(this._phaserObject)
+
+}
+
+/**
+ * Hits the player.
+ */
+Smc.playerTypes.Player.prototype.hit = function() {
+    this._phaserObject.health = this._phaserObject.health - (10 / this._defense);
+    if  (this._phaserObject.health<=0){
+        this._kill();
+    }
+}
+
+/**
+ * Kills the player.
+ */
+Smc.playerTypes.Player.prototype._kill = function() {
+    this._phaserObject.health = 0;
+    this._phaserObject.kill();
+}
+
+/**
+ * Moves the player to the left.
+ */
+Smc.playerTypes.Player.prototype.moveLeft = function() {
+    if (this._isGoingUp) {
+        this._phaserObject.x = this._phaserObject.x - 10;
+    } else {
+        this._phaserObject.x = this._phaserObject.x - 5;
+    }
+    this._phaserObject.animations.play('left', 15, false);
+    this._weaponMountPhaserObject.angle = 180;
+    this._onMove();
+}
+
+/**
+ * Moves the player to the right.
+ */
+Smc.playerTypes.Player.prototype.moveRight = function() {
+    if (this._isGoingUp) {
+        this._phaserObject.x = this._phaserObject.x + 10;
+    } else {
+        this._phaserObject.x = this._phaserObject.x + 5;
+    }
+    this._phaserObject.animations.play('right', 15, false);
+    this._weaponMountPhaserObject.x = x;
+    this._weaponMountPhaserObject.angle = 0;
+    this._onMove();
+}
+
+/**
+ * Moves the player upwards.
+ */
+Smc.playerTypes.Player.prototype.moveUp = function() {
+    this._isGoingUp = true;
+    this._phaserObject.y = this._phaserObject.y - 10;
+    this._phaserObject.animations.play('up', 30, false);
+    this._onMove();
+    this._isGoingUp = false;
+}
+
+/**
+ * Moves the player downwards.
+ */
+Smc.playerTypes.Player.prototype.moveDown = function() {
+    this._onMove();
+}
+
+/**
+ * Responds to player movement.
+ */
+Smc.playerTypes.Player.prototype._onMove = function() {
+    this._weaponMountPhaserObject.y =   this._phaserObject.y;
+    this._weaponMountPhaserObject.x =   this._phaserObject.x;
+}
+
+/**
+ * Stops the player's movements.
+ */
+Smc.playerTypes.Player.prototype.stopMoving = function() {
+    this._phaserObject.animations.play('stop', 1, false);
+}
+
+/**
+ * Fires the player's weapon.
+ */
+Smc.playerTypes.Player.prototype.fireWeapon = function() {
+    this._weaponPhaserObject.fire();
+}
+
+Smc.playerTypes.Student = (function() {
+    /**
+     * Responds to student movement.
+     */
+    var _onMove = function() {
+        Smc.playerTypes.Player.prototype._onMove.call(this);
+        var px = this._phaserObject.body.velocity.x;
+        var py = this._phaserObject.body.velocity.y;
+
+        px *= -1;
+        py *= -1;
+
+        emitter.minParticleSpeed.set(px, py);
+        emitter.maxParticleSpeed.set(px, py);
+
+        emitter.emitX = this._phaserObject.x;
+        emitter.emitY = this._phaserObject.y;
+
+        emitter.setScale(0.1,0, 0.1,0, 3000);
+
+        emitter.start(true, 100, null, 5);
+
+    };
+
+    return function() {
+        Smc.playerTypes.Player.call(this, "student", game.add.sprite(600,480, 'student'));
+        this._onMove = _onMove;
+    };
+})();
+Smc.playerTypes.Student.prototype = Smc.playerTypes.Player.prototype;
+
+Smc.playerTypes.Mexican = (function() {
+    return function() {
+        Smc.playerTypes.Player.call(this, "mexican", game.add.sprite( mexicanX, mexicanY, 'mexican'));
+        this._phaserObject.body.immovable      = true;
+    };
+})();
+Smc.playerTypes.Mexican.prototype = Smc.playerTypes.Player.prototype;
 
 /**
  * Builds a Phaser event handler for a specific event.
@@ -29,12 +218,6 @@ function buildPhaserEventHandler(eventName) {
     }
 }
 
-var game = new Phaser.Game(640,480, Phaser.AUTO, 'world', {
-    preload: buildPhaserEventHandler("preload"),
-    create: buildPhaserEventHandler("create"),
-    update: buildPhaserEventHandler("update")
-});
-
 var cursors;
 
 var mexicanX = 200;
@@ -44,8 +227,6 @@ var boxY = 250;
 var liftX = 400;
 var liftY = 250;
 var lift ;
-var student;
-var studentWeaponMount;
 var mexican;
 
 var armX = 46;
@@ -57,10 +238,7 @@ var weightY= 345;
 
 var x = game.width/2;
 var y = game.height/2;
-var dirX = 10;
-var dirY = 10;
 var emitter;
-var weapon;
 
 Smc.phaserEventHandlers.preload.push(function() {
     game.load.image('arm', 'assets/arm.png');
@@ -97,23 +275,9 @@ Smc.phaserEventHandlers.create.push(function() {
     emitter.gravity = 800;
     emitter.setAlpha(1, 0, 3000);
 
-    student = game.add.sprite( 600,480, 'student');
-    studentWeaponMount = game.add.sprite( 600,480, 'pixel');
+    student = new Smc.playerTypes.Student();
+    mexican = new Smc.playerTypes.Mexican();
 
-
-    game.physics.enable(studentWeaponMount, Phaser.Physics.ARCADE);
-
-    studentWeaponMount.body.enable          = true;
-    studentWeaponMount.body.allowRotation   = true;
-
-
-    student.animations.add('left', ['left1', 'left2','left3', 'left4','left5', 'left6','left7', 'left8','left9']);
-    student.animations.add('right', ['right1', 'right2','right3', 'right4','right5', 'right6','right7', 'right8', 'right9']);
-    student.animations.add('up', ['up1', 'up2','up3', 'up4','up5', 'up6','up7', 'up8','up9']);
-    student.animations.add('down', ['down1', 'down2']);
-
-
-    mexican = game.add.sprite( mexicanX, mexicanY, 'mexican');
     box = game.add.sprite( boxX, boxY, 'box');
     lift = game.add.sprite( liftX, liftY, 'lift');
 
@@ -121,157 +285,43 @@ Smc.phaserEventHandlers.create.push(function() {
     pump = game.add.sprite( pumpX, pumpY, 'pump');
     arm = game.add.sprite( armX, armY, 'arm');
     weight = game.add.sprite( weightX, weightY, 'weight');
-
-    mexican.animations.add('stop');
-    mexican.animations.play('stop', 5, true);
-
-
-    mexican.id                  = 1;
-    mexican.maxHealth           = 100;
-    mexican.health              = 100;
-    mexican.anchor.setTo(0.5, 0.5);
-    game.physics.enable(mexican, Phaser.Physics.ARCADE);
-    mexican.hud                 = Phaser.Plugin.HUDManager.create(mexican.game, mexican, 'enemyhud');
-    mexican.healthHUD           =mexican.hud.addBar(0, -20, 32, 2, mexican.maxHealth, 'health', mexican, Phaser.Plugin.HUDManager.HEALTHBAR, false);
-    mexican.healthHUD.bar.anchor.setTo(0.5, 0.5);
-    mexican.addChild(mexican.healthHUD.bar);
-    mexican.body.immovable      = true;
-
-    game.physics.arcade.enable(mexican);
+;
     game.physics.arcade.enable(box);
     game.physics.arcade.enable(lift);
-    mexican.body.gravity.set(0, 180);
-    mexican.body.collideWorldBounds = true;
     lift.body.collideWorldBounds = true;
     box.body.collideWorldBounds = true;
-    student.anchor.setTo(0.5, 0.5);
-    game.physics.arcade.enable(student);
-    student.body.velocity.setTo(200, 200);
-    // makes image collideable
-    student.body.collideWorldBounds = true;
-    // student.bounce.set(0.8);
-    student.body.gravity.set(0, 180);
-    //student.inputEnabled = true;
-
-    game.physics.arcade.enable(box);
-
-    game.physics.arcade.enable(lift);
 
     cursors = game.input.keyboard.createCursorKeys();
-
-    //  Creates 30 bullets, using the 'bullet' graphic
-    weapon = game.add.weapon(30, 'bullet');
-
-    //  The bullet will be automatically killed when it leaves the world bounds
-    weapon.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
-
-    //  The speed at which the bullet is fired
-    weapon.bulletSpeed = 600;
-
-    //  Speed-up the rate of fire, allowing them to shoot 1 bullet every 60ms
-    weapon.fireRate = 100;
-
-    game.physics.arcade.enable(weapon);
-    //  Tell the Weapon to track the 'student' Sprite
-    //  With no offsets from the position
-    //  But the 'true' argument tells the weapon to track sprite rotation
-    weapon.trackSprite(studentWeaponMount, 0, 0, true);
 });
 
 Smc.phaserEventHandlers.update.push(function() {
-    game.physics.arcade.collide(mexican, box, yahoo);
-    game.physics.arcade.collide(mexican, weapon.bullets, bomb, null, this);
-
-    game.physics.arcade.collide(student, box, yahoo);
-    game.physics.arcade.collide(student, lift, yahoo);
-
-    if (x > game.width - student.width || x < 0) {
-        dirX = -dirX;
-    }
-    if (y > game.height - student.height || y < 0) {
-        dirY = -dirY;
-    }
+    game.physics.arcade.collide(mexican._phaserObject, box);
+    game.physics.arcade.collide(student._phaserObject, box);
+    game.physics.arcade.collide(student._phaserObject, lift);
+    game.physics.arcade.collide(mexican._phaserObject, student._weaponPhaserObject.bullets, function(mexicanPhaserObject, bulletPhaserObject) {
+        mexican.hit();
+        bulletPhaserObject.kill();
+    }, null, this);
 
 
     if (cursors.up.isDown) {
-        student.y = student.y - 10;
-        particleBurst();
-        //  emitter.start(false, 3000, 5);
-        student.animations.play('up', 30, false);
-
-        console.log(student.y);
+        student.moveUp();
     }
     else {
-        student.animations.play('stop', 30, false);
+        student.stopMoving();
     }
 
     if (cursors.left.isDown) {
-        if (cursors.up.isDown) {
-            student.x = student.x - 10;
-        } else {
-            student.x = student.x - 5;
-        }
-        student.animations.play('left', 15, false);
-
-        studentWeaponMount.angle = 180;
-
+        student.moveLeft();
     }
     else if (cursors.right.isDown) {
-        if (cursors.up.isDown) {
-            student.x = student.x + 10;
-        } else {
-            student.x = student.x + 5;
-        }
-        student.animations.play('right', 15, false);
-        studentWeaponMount.x = x;
-        studentWeaponMount.angle = 0;
-
-
+        student.moveRight();
     } else {
-        student.animations.play('stop', 15, false);
+        student.stopMoving();
     }
 
     if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)) {
-        weapon.fire();
+        student.fireWeapon();
     }
 
-    studentWeaponMount.y =   student.y;
-    studentWeaponMount.x =   student.x;
 });
-
-
-function bomb(mexican, bullet){
-    mexican.health = mexican.health -10;
-
-    if  (mexican.health<=0){
-
-        mexican.kill();
-    }
-    bullet.kill();
-}
-
-
-function particleBurst() {
-    var px = student.body.velocity.x;
-    var py = student.body.velocity.y;
-
-    px *= -1;
-    py *= -1;
-
-    emitter.minParticleSpeed.set(px, py);
-    emitter.maxParticleSpeed.set(px, py);
-
-    emitter.emitX = student.x;
-    emitter.emitY = student.y;
-
-    emitter.setScale(0.1,0, 0.1,0, 3000);
-
-    emitter.start(true, 100, null, 5);
-
-}
-
-function yahoo(){
-
-    console.log('yahoo');
-
-}
