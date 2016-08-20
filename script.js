@@ -27,16 +27,12 @@ var game = new Phaser.Game(640,480, Phaser.AUTO, 'world', {
 Smc.playerTypes.Player = function (name, phaserObject) {
     this._defense = 1;
     this._name = name;
-    this._isGoingUp = false;
+    this._isMovingVertically = false;
     this._phaserObject = phaserObject;
     game.physics.arcade.enable(this._phaserObject);
-    this._phaserObject.animations.add('left', ['left1', 'left2','left3', 'left4','left5', 'left6','left7', 'left8','left9']);
+    this._phaserObject.animations.add('front', ['front1', 'front2', 'front3', 'front4', 'front5', 'front6', 'front7', 'front8', 'front9']);
+    this._phaserObject.animations.add('left', ['left1', 'left2', 'left3', 'left4', 'left5', 'left6', 'left7', 'left8', 'left9']);
     this._phaserObject.animations.add('right', ['right1', 'right2','right3', 'right4','right5', 'right6','right7', 'right8', 'right9']);
-    this._phaserObject.animations.add('up', ['up1', 'up2','up3', 'up4','up5', 'up6','up7', 'up8','up9']);
-    this._phaserObject.animations.add('down', ['down1', 'down2']);
-    this._phaserObject.animations.add('stop');
-    this._phaserObject.animations.play('stop', 5, true);
-    this._phaserObject.animations.play('stop', 5, true);
     this._phaserObject.body.gravity.set(0, 180);
     this._phaserObject.body.collideWorldBounds = true;
     this._phaserObject.anchor.setTo(0.5, 0.5);
@@ -95,12 +91,12 @@ Smc.playerTypes.Player.prototype._kill = function() {
  * Moves the player to the left.
  */
 Smc.playerTypes.Player.prototype.moveLeft = function() {
-    if (this._isGoingUp) {
+    if (this._isMovingVertically) {
         this._phaserObject.x = this._phaserObject.x - 10;
     } else {
         this._phaserObject.x = this._phaserObject.x - 5;
     }
-    this._phaserObject.animations.play('left', 15, false);
+    this._phaserObject.animations.play('left', 2, true);
     this._weaponMountPhaserObject.angle = 180;
     this._onMove();
 }
@@ -109,12 +105,12 @@ Smc.playerTypes.Player.prototype.moveLeft = function() {
  * Moves the player to the right.
  */
 Smc.playerTypes.Player.prototype.moveRight = function() {
-    if (this._isGoingUp) {
+    if (this._isMovingVertically) {
         this._phaserObject.x = this._phaserObject.x + 10;
     } else {
         this._phaserObject.x = this._phaserObject.x + 5;
     }
-    this._phaserObject.animations.play('right', 15, false);
+    this._phaserObject.animations.play('right', 2, true);
     this._weaponMountPhaserObject.x = x;
     this._weaponMountPhaserObject.angle = 0;
     this._onMove();
@@ -124,18 +120,24 @@ Smc.playerTypes.Player.prototype.moveRight = function() {
  * Moves the player upwards.
  */
 Smc.playerTypes.Player.prototype.moveUp = function() {
-    this._isGoingUp = true;
+    this._isMovingVertically = true;
     this._phaserObject.y = this._phaserObject.y - 10;
-    this._phaserObject.animations.play('up', 30, false);
+    this._phaserObject.animations.play('front', 2, true);
+    this._weaponMountPhaserObject.angle = 270;
     this._onMove();
-    this._isGoingUp = false;
+    this._isMovingVertically = false;
 }
 
 /**
  * Moves the player downwards.
  */
 Smc.playerTypes.Player.prototype.moveDown = function() {
+    this._isMovingVertically = true;
+    this._phaserObject.y = this._phaserObject.y + 10;
+    this._phaserObject.animations.play('front', 2, true);
+    this._weaponMountPhaserObject.angle = 90;
     this._onMove();
+    this._isMovingVertically = false;
 }
 
 /**
@@ -143,13 +145,6 @@ Smc.playerTypes.Player.prototype.moveDown = function() {
  */
 Smc.playerTypes.Player.prototype._onMove = function() {
     // This function can be overridden by objects using this prototype.
-}
-
-/**
- * Stops the player's movements.
- */
-Smc.playerTypes.Player.prototype.stopMoving = function() {
-    this._phaserObject.animations.play('stop', 1, false);
 }
 
 /**
@@ -288,7 +283,7 @@ Smc.phaserEventHandlers.create.push(function() {
     pump = game.add.sprite( pumpX, pumpY, 'pump');
     arm = game.add.sprite( armX, armY, 'arm');
     weight = game.add.sprite( weightX, weightY, 'weight');
-;
+
     game.physics.arcade.enable(box);
     game.physics.arcade.enable(lift);
     lift.body.collideWorldBounds = true;
@@ -310,17 +305,14 @@ Smc.phaserEventHandlers.update.push(function() {
     if (cursors.up.isDown) {
         student.moveUp();
     }
-    else {
-        student.stopMoving();
+    if (cursors.down.isDown) {
+        student.moveDown();
     }
-
     if (cursors.left.isDown) {
         student.moveLeft();
     }
-    else if (cursors.right.isDown) {
+    if (cursors.right.isDown) {
         student.moveRight();
-    } else {
-        student.stopMoving();
     }
 
     if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)) {
