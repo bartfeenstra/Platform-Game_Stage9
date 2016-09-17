@@ -76,117 +76,123 @@ Smc.playerTypes.Player = function (name, phaserObject) {
     this._phaserObject.bringToTop();
 }
 
-/**
- * Hits the player.
- */
-Smc.playerTypes.Player.prototype.hit = function() {
-    this._phaserObject.health = this._phaserObject.health - (10 / this._defense);
-    if  (this._phaserObject.health<=0){
-        this._kill();
+Smc.playerTypes.Player.prototype = {
+
+    __proto__: Object.prototype,
+
+    /**
+     * Hits the player.
+     */
+    hit: function() {
+        this._phaserObject.health = this._phaserObject.health - (10 / this._defense);
+        if  (this._phaserObject.health<=0){
+            this._kill();
+        }
+    },
+
+    /**
+     * Kills the player.
+     */
+    _kill: function() {
+        this._phaserObject.health = 0;
+        this._phaserObject.kill();
+    },
+
+    /**
+     * Moves the player to the left.
+     */
+    moveLeft: function() {
+        if (this._isMovingVertically) {
+            this._phaserObject.x = this._phaserObject.x - 10;
+        } else {
+            this._phaserObject.x = this._phaserObject.x - 5;
+        }
+        this._phaserObject.animations.play('left', 2, true);
+        this._weaponMountPhaserObject.angle = 180;
+        this._onMove();
+    },
+
+    /**
+     * Moves the player to the right.
+     */
+    moveRight: function() {
+        if (this._isMovingVertically) {
+            this._phaserObject.x = this._phaserObject.x + 10;
+        } else {
+            this._phaserObject.x = this._phaserObject.x + 5;
+        }
+        this._phaserObject.animations.play('right', 2, true);
+        this._weaponMountPhaserObject.x = x;
+        this._weaponMountPhaserObject.angle = 0;
+        this._onMove();
+    },
+
+    /**
+     * Moves the player upwards.
+     */
+    moveUp: function() {
+        this._isMovingVertically = true;
+        this._phaserObject.y = this._phaserObject.y - 10;
+        this._phaserObject.animations.play('front', 2, true);
+        this._weaponMountPhaserObject.angle = 270;
+        this._onMove();
+        this._isMovingVertically = false;
+    },
+
+    /**
+     * Moves the player downwards.
+     */
+    moveDown: function() {
+        this._isMovingVertically = true;
+        this._phaserObject.y = this._phaserObject.y + 10;
+        this._phaserObject.animations.play('front', 2, true);
+        this._weaponMountPhaserObject.angle = 90;
+        this._onMove();
+        this._isMovingVertically = false;
+    },
+
+    /**
+     * Responds to player movement.
+     */
+    _onMove: function() {
+        // Show the trail blaze.
+        var trailBlazeVelocityX = this._phaserObject.body.velocity.x * -1;
+        var trailBlazeVelocityY = this._phaserObject.body.velocity.y * -1;
+        this._trailBlazeEmitter.minParticleSpeed.set(trailBlazeVelocityX, trailBlazeVelocityY);
+        this._trailBlazeEmitter.maxParticleSpeed.set(trailBlazeVelocityX, trailBlazeVelocityY);
+        this._trailBlazeEmitter.emitX = this._phaserObject.x;
+        this._trailBlazeEmitter.emitY = this._phaserObject.y;
+        this._trailBlazeEmitter.setScale(0.1,0, 0.1,0, 3000);
+        this._trailBlazeEmitter.start(true, 100, null, 5);
+    },
+
+    /**
+     * Fires the player's weapon.
+     */
+    fireWeapon: function() {
+        // It appears to be impossible to reposition the weapon as soon as the character is moved through game forces such
+        // as gravity, so do we do it here, where it actually matters.
+        this._weaponMountPhaserObject.y =   this._phaserObject.y;
+        this._weaponMountPhaserObject.x =   this._phaserObject.x;
+        this._weaponPhaserObject.fire();
     }
-}
 
-/**
- * Kills the player.
- */
-Smc.playerTypes.Player.prototype._kill = function() {
-    this._phaserObject.health = 0;
-    this._phaserObject.kill();
-}
+};
 
-/**
- * Moves the player to the left.
- */
-Smc.playerTypes.Player.prototype.moveLeft = function() {
-    if (this._isMovingVertically) {
-        this._phaserObject.x = this._phaserObject.x - 10;
-    } else {
-        this._phaserObject.x = this._phaserObject.x - 5;
-    }
-    this._phaserObject.animations.play('left', 2, true);
-    this._weaponMountPhaserObject.angle = 180;
-    this._onMove();
-}
+Smc.playerTypes.Student = function() {
+    Smc.playerTypes.Player.call(this, "student", game.add.sprite(600,480, 'student'));
+};
+Smc.playerTypes.Student.prototype = {
+    __proto__: Smc.playerTypes.Player.prototype,
+};
 
-/**
- * Moves the player to the right.
- */
-Smc.playerTypes.Player.prototype.moveRight = function() {
-    if (this._isMovingVertically) {
-        this._phaserObject.x = this._phaserObject.x + 10;
-    } else {
-        this._phaserObject.x = this._phaserObject.x + 5;
-    }
-    this._phaserObject.animations.play('right', 2, true);
-    this._weaponMountPhaserObject.x = x;
-    this._weaponMountPhaserObject.angle = 0;
-    this._onMove();
-}
-
-/**
- * Moves the player upwards.
- */
-Smc.playerTypes.Player.prototype.moveUp = function() {
-    this._isMovingVertically = true;
-    this._phaserObject.y = this._phaserObject.y - 10;
-    this._phaserObject.animations.play('front', 2, true);
-    this._weaponMountPhaserObject.angle = 270;
-    this._onMove();
-    this._isMovingVertically = false;
-}
-
-/**
- * Moves the player downwards.
- */
-Smc.playerTypes.Player.prototype.moveDown = function() {
-    this._isMovingVertically = true;
-    this._phaserObject.y = this._phaserObject.y + 10;
-    this._phaserObject.animations.play('front', 2, true);
-    this._weaponMountPhaserObject.angle = 90;
-    this._onMove();
-    this._isMovingVertically = false;
-}
-
-/**
- * Responds to player movement.
- */
-Smc.playerTypes.Player.prototype._onMove = function() {
-    // Show the trail blaze.
-    var trailBlazeVelocityX = this._phaserObject.body.velocity.x * -1;
-    var trailBlazeVelocityY = this._phaserObject.body.velocity.y * -1;
-    this._trailBlazeEmitter.minParticleSpeed.set(trailBlazeVelocityX, trailBlazeVelocityY);
-    this._trailBlazeEmitter.maxParticleSpeed.set(trailBlazeVelocityX, trailBlazeVelocityY);
-    this._trailBlazeEmitter.emitX = this._phaserObject.x;
-    this._trailBlazeEmitter.emitY = this._phaserObject.y;
-    this._trailBlazeEmitter.setScale(0.1,0, 0.1,0, 3000);
-    this._trailBlazeEmitter.start(true, 100, null, 5);
-}
-
-/**
- * Fires the player's weapon.
- */
-Smc.playerTypes.Player.prototype.fireWeapon = function() {
-    // It appears to be impossible to reposition the weapon as soon as the character is moved through game forces such
-    // as gravity, so do we do it here, where it actually matters.
-    this._weaponMountPhaserObject.y =   this._phaserObject.y;
-    this._weaponMountPhaserObject.x =   this._phaserObject.x;
-    this._weaponPhaserObject.fire();
-}
-
-Smc.playerTypes.Student = (function() {
-    return function() {
-        Smc.playerTypes.Player.call(this, "student", game.add.sprite(600,480, 'student'));
-    };
-})();
-Smc.playerTypes.Student.prototype = Smc.playerTypes.Player.prototype;
-
-Smc.playerTypes.Mexican = (function() {
-    return function() {
-        Smc.playerTypes.Player.call(this, "mexican", game.add.sprite( mexicanX, mexicanY, 'mexican'));
-        this._phaserObject.body.immovable      = true;
-    };
-})();
-Smc.playerTypes.Mexican.prototype = Smc.playerTypes.Player.prototype;
+Smc.playerTypes.Mexican = function() {
+    Smc.playerTypes.Player.call(this, "mexican", game.add.sprite( mexicanX, mexicanY, 'mexican'));
+    this._phaserObject.body.immovable      = true;
+};
+Smc.playerTypes.Mexican.prototype = {
+    __proto__: Smc.playerTypes.Player.prototype,
+};
 
 /**
  * Builds a Phaser event handler for a specific event.
