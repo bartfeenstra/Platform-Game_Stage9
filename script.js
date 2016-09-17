@@ -286,6 +286,17 @@ Smc.playerTypes.EnemyTeamPlayer = function(name, phaserObject) {
 };
 Smc.playerTypes.EnemyTeamPlayer.prototype = {
     __proto__: Smc.playerTypes.Player.prototype,
+
+    isEnemyOf: function(playerType) {
+        Smc.playerTypes.Player.prototype.isEnemyOf.call(this, playerType);
+
+        // The enemy team can kill human team members by touching them.
+        Smc.phaserEventHandlers.update.push(function() {
+            game.physics.arcade.collide(Smc.humanTeam, Smc.enemyTeam, function(humanTeamPlayerPhaserObject, enemyTeamPlayerPhaserObject) {
+                Smc.players[humanTeamPlayerPhaserObject.name].kill();
+            }, null, this);
+        });
+    }
 };
 
 /**
@@ -442,13 +453,6 @@ Smc.phaserEventHandlers.create.push(function() {
     Smc.enemyTeam.add(mexican.getPhaserObject());
     Smc.enemyTeam.enableBody = true;
     game.physics.arcade.enable(Smc.enemyTeam);
-
-    // The enemy team can kill human team members by touching them.
-    Smc.phaserEventHandlers.update.push(function() {
-        game.physics.arcade.collide(Smc.humanTeam, Smc.enemyTeam, function(humanTeamPlayerPhaserObject, enemyTeamPlayerPhaserObject) {
-            Smc.players[humanTeamPlayerPhaserObject.name].kill();
-        }, null, this);
-    });
 });
 
 
