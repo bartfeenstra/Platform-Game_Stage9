@@ -8,7 +8,13 @@ var Smc = {
         create: [],
         update: []
     },
-    playerTypes: {}
+    playerTypes: {},
+    // The players (Smc.playerTypes.Player), keyed by their Phaser object names.
+    players: [],
+    // The human team Phaser group object.
+    humanTeam: null,
+    // The enemy team Phaser group object.
+    enemyTeam: null
 };
 
 var game = new Phaser.Game(640,480, Phaser.AUTO, 'world', {
@@ -25,6 +31,8 @@ var game = new Phaser.Game(640,480, Phaser.AUTO, 'world', {
  * @constructor
  */
 Smc.playerTypes.Player = function (name, phaserObject) {
+    phaserObject.name = name;
+    Smc.players[name] = this;
     this._defense = 1;
     this._name = name;
     this._isMovingVertically = false;
@@ -86,14 +94,14 @@ Smc.playerTypes.Player.prototype = {
     hit: function() {
         this._phaserObject.health = this._phaserObject.health - (10 / this._defense);
         if  (this._phaserObject.health<=0){
-            this._kill();
+            this.kill();
         }
     },
 
     /**
      * Kills the player.
      */
-    _kill: function() {
+    kill: function() {
         this._phaserObject.health = 0;
         this._phaserObject.kill();
     },
@@ -175,23 +183,121 @@ Smc.playerTypes.Player.prototype = {
         this._weaponMountPhaserObject.y =   this._phaserObject.y;
         this._weaponMountPhaserObject.x =   this._phaserObject.x;
         this._weaponPhaserObject.fire();
+    },
+
+    /**
+     * Returns this player's Phaser object.
+     */
+    getPhaserObject: function() {
+        return this._phaserObject;
+    },
+
+    /**
+     * Marks this player an enemy of another team.
+     * @param playerType
+     */
+    isEnemyOf: function(playerType) {
+        // Make this player's bullets kill enemies on game update.
+        // Bring this in scope for the lambda ahead.
+        var player = this;
+        Smc.phaserEventHandlers.update.push(function() {
+            for (var playerName in Smc.players) {
+                if (!(Smc.players[playerName] instanceof playerType)) {
+                    continue;
+                }
+                game.physics.arcade.collide(Smc.players[playerName].getPhaserObject(), player._weaponPhaserObject.bullets, function(enemyPhaserObject, bulletPhaserObject) {
+                    Smc.players[enemyPhaserObject.name].hit();
+                    bulletPhaserObject.kill();
+                }, null, player);
+            }
+        });
     }
 
 };
 
-Smc.playerTypes.Student = function() {
-    Smc.playerTypes.Player.call(this, "student", game.add.sprite(600,480, 'student'));
+/**
+ * A player on the human team.
+ * @constructor
+ */
+Smc.playerTypes.HumanTeamPlayer = function(name, phaserObject) {
+    Smc.playerTypes.Player.call(this, name, phaserObject);
+    this.isEnemyOf(Smc.playerTypes.EnemyTeamPlayer);
 };
-Smc.playerTypes.Student.prototype = {
+Smc.playerTypes.HumanTeamPlayer.prototype = {
     __proto__: Smc.playerTypes.Player.prototype,
 };
 
+/**
+ * A human player.
+ * @constructor
+ */
+Smc.playerTypes.HumanPlayer = function(name, phaserObject, upKey, downKey, leftKey, rightKey, fireKey) {
+    Smc.playerTypes.HumanTeamPlayer.call(this, name, phaserObject);
+
+    // Handle movement.
+    // Bring this in scope for the lambda ahead.
+    var player = this;
+    Smc.phaserEventHandlers.update.push(function() {
+        // Players can't move when they're dead.
+        if (player.getPhaserObject().health == 0) {
+            return;
+        }
+
+        if (game.input.keyboard.isDown(upKey)) {
+            student.moveUp();
+        }
+        if (game.input.keyboard.isDown(downKey)) {
+            student.moveDown();
+        }
+        if (game.input.keyboard.isDown(leftKey)) {
+            student.moveLeft();
+        }
+        if (game.input.keyboard.isDown(rightKey)) {
+            student.moveRight();
+        }
+        if (game.input.keyboard.isDown(fireKey)) {
+            student.fireWeapon();
+        }
+
+    });
+};
+Smc.playerTypes.HumanPlayer.prototype = {
+    __proto__: Smc.playerTypes.HumanTeamPlayer.prototype,
+};
+
+/**
+ * The student human player.
+ * @constructor
+ */
+Smc.playerTypes.Student = function() {
+    Smc.playerTypes.HumanPlayer.call(this, "student", game.add.sprite(600,480, 'student'), Phaser.Keyboard.UP, Phaser.Keyboard.DOWN, Phaser.Keyboard.LEFT, Phaser.Keyboard.RIGHT, Phaser.Keyboard.SPACEBAR);
+};
+Smc.playerTypes.Student.prototype = {
+    __proto__: Smc.playerTypes.HumanPlayer.prototype,
+};
+
+/**
+ * A player on the enemy team.
+ * @constructor
+ */
+Smc.playerTypes.EnemyTeamPlayer = function(name, phaserObject) {
+    Smc.playerTypes.Player.call(this, name, phaserObject);
+    this.isEnemyOf(Smc.playerTypes.HumanTeamPlayer);
+};
+Smc.playerTypes.EnemyTeamPlayer.prototype = {
+    __proto__: Smc.playerTypes.Player.prototype,
+};
+
+/**
+ * The Mexican enemy player.
+ * @constructor
+ */
 Smc.playerTypes.Mexican = function() {
-    Smc.playerTypes.Player.call(this, "mexican", game.add.sprite( mexicanX, mexicanY, 'mexican'));
+    Smc.playerTypes.EnemyTeamPlayer.call(this, "mexican", game.add.sprite( mexicanX, mexicanY, 'mexican'));
     this._phaserObject.body.immovable      = true;
 };
 Smc.playerTypes.Mexican.prototype = {
-    __proto__: Smc.playerTypes.Player.prototype,
+    __proto__: Smc.playerTypes.EnemyTeamPlayer.prototype,
 };
 
 /**
@@ -222,6 +328,7 @@ var boxY = 250;
 var liftX = 400;
 var liftY = 250;
 var lift ;
+var student;
 var mexican;
 
 var x = game.width/2;
@@ -254,13 +361,11 @@ Smc.phaserEventHandlers.preload.push(function() {
 Smc.phaserEventHandlers.preload.push(function(arg) {
     console.log("this works",arg);
 });
+
 Smc.phaserEventHandlers.create.push(function() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
     game.stage.backgroundColor = '#333';
     game.add.tileSprite(-400,-400, 2000, 1600, 'background');
-
-    student = new Smc.playerTypes.Student();
-    mexican = new Smc.playerTypes.Mexican();
 
     box = game.add.sprite( boxX, boxY, 'box');
     lift = game.add.sprite( liftX, liftY, 'lift');
@@ -320,31 +425,30 @@ Smc.phaserEventHandlers.create.push(function() {
 
 });
 
-Smc.phaserEventHandlers.update.push(function() {
-    game.physics.arcade.collide(mexican._phaserObject, box);
-    game.physics.arcade.collide(student._phaserObject, box);
-    game.physics.arcade.collide(student._phaserObject, lift);
-    game.physics.arcade.collide(mexican._phaserObject, student._weaponPhaserObject.bullets, function(mexicanPhaserObject, bulletPhaserObject) {
-        mexican.hit();
-        bulletPhaserObject.kill();
-    }, null, this);
+/**
+ * Create the teams.
+ */
+Smc.phaserEventHandlers.create.push(function() {
+    // Create a team for human players. It may include computer-controlled team members as well.
+    Smc.humanTeam = game.add.group();
+    student = new Smc.playerTypes.Student();
+    Smc.humanTeam.add(student.getPhaserObject());
+    Smc.humanTeam.enableBody = true;
+    game.physics.arcade.enable(Smc.humanTeam);
 
-    if (cursors.up.isDown) {
-        student.moveUp();
-    }
-    if (cursors.down.isDown) {
-        student.moveDown();
-    }
-    if (cursors.left.isDown) {
-        student.moveLeft();
-    }
-    if (cursors.right.isDown) {
-        student.moveRight();
-    }
-    if (game.input.keyboard.isDown(Phaser.Keyboard.SPACEBAR)) {
-        student.fireWeapon();
-    }
+    // Create the enemy team, that solely consists of computer-controlled players.
+    Smc.enemyTeam = game.add.group();
+    mexican = new Smc.playerTypes.Mexican();
+    Smc.enemyTeam.add(mexican.getPhaserObject());
+    Smc.enemyTeam.enableBody = true;
+    game.physics.arcade.enable(Smc.enemyTeam);
 
+    // The enemy team can kill human team members by touching them.
+    Smc.phaserEventHandlers.update.push(function() {
+        game.physics.arcade.collide(Smc.humanTeam, Smc.enemyTeam, function(humanTeamPlayerPhaserObject, enemyTeamPlayerPhaserObject) {
+            Smc.players[humanTeamPlayerPhaserObject.name].kill();
+        }, null, this);
+    });
 });
 
 
