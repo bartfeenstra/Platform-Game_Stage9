@@ -38,9 +38,9 @@ Smc.playerTypes.Player = function (name, phaserObject) {
     this._isMovingVertically = false;
     this._phaserObject = phaserObject;
     Smc.game.physics.arcade.enable(this._phaserObject);
-    this._phaserObject.animations.add('front', ['front1', 'front2', 'front3', 'front4', 'front5', 'front6', 'front7', 'front8', 'front9']);
-    this._phaserObject.animations.add('left', ['left1', 'left2', 'left3', 'left4', 'left5', 'left6', 'left7', 'left8', 'left9']);
-    this._phaserObject.animations.add('right', ['right1', 'right2','right3', 'right4','right5', 'right6','right7', 'right8', 'right9']);
+    this._phaserObject.animations.add('front');
+    this._phaserObject.animations.add('left');
+    this._phaserObject.animations.add('right');
     this._phaserObject.body.gravity.set(0, 180);
     this._phaserObject.body.collideWorldBounds = true;
     this._phaserObject.anchor.setTo(0.5, 0.5);
@@ -104,6 +104,20 @@ Smc.playerTypes.Player.prototype = {
     kill: function() {
         this._phaserObject.health = 0;
         this._phaserObject.kill();
+        this._weaponMountPhaserObject.kill();
+        this._trailBlazeEmitter.kill();
+
+        // Show fire and smoke.
+        var emitter = Smc.game.add.emitter(this._phaserObject.x, this._phaserObject.y, 3);
+        emitter.makeParticles(['fire1', 'smoke']);
+        emitter.gravity = 200;
+        emitter.x = this._phaserObject.x;
+        emitter.y = this._phaserObject.y;
+        emitter.setScale(0.5, 1, 0.5 , 1, 100);
+        emitter.start(true, 2000, null, 10);
+        Smc.game.time.events.add(2000, function() {
+            emitter.destroy();
+        }, this);
     },
 
     /**
@@ -130,7 +144,7 @@ Smc.playerTypes.Player.prototype = {
             this._phaserObject.x = this._phaserObject.x + 5;
         }
         this._phaserObject.animations.play('right', 2, true);
-        this._weaponMountPhaserObject.x = game.width/2;
+        this._weaponMountPhaserObject.x = Smc.game.width/2;
         this._weaponMountPhaserObject.angle = 0;
         this._onMove();
     },
@@ -271,6 +285,9 @@ Smc.playerTypes.HumanPlayer.prototype = {
  */
 Smc.playerTypes.Student = function() {
     Smc.playerTypes.HumanPlayer.call(this, "student", Smc.game.add.sprite(600,480, 'student'), Phaser.Keyboard.UP, Phaser.Keyboard.DOWN, Phaser.Keyboard.LEFT, Phaser.Keyboard.RIGHT, Phaser.Keyboard.SPACEBAR);
+    this._phaserObject.animations.add('front', ['front1', 'front2', 'front3', 'front4', 'front5', 'front6', 'front7', 'front8', 'front9']);
+    this._phaserObject.animations.add('left', ['left1', 'left2', 'left3', 'left4', 'left5', 'left6', 'left7', 'left8', 'left9']);
+    this._phaserObject.animations.add('right', ['right1', 'right2','right3', 'right4','right5', 'right6','right7', 'right8', 'right9']);
 };
 Smc.playerTypes.Student.prototype = {
     __proto__: Smc.playerTypes.HumanPlayer.prototype,
