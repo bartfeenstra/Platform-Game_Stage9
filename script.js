@@ -325,7 +325,7 @@ function buildPhaserEventHandler(eventName) {
     // passed on to this builder function.
     return function() {
         Smc.phaserEventHandlers[eventName].forEach(function (handler) {
-            handler('hello');
+            handler();
         });
     }
 }
@@ -368,9 +368,6 @@ Smc.phaserEventHandlers.preload.push(function() {
     game.load.image('pump', 'assets/pump.png');
     game.load.image('weight', 'assets/weight.png');
 
-});
-Smc.phaserEventHandlers.preload.push(function(arg) {
-    console.log("this works",arg);
 });
 
 Smc.phaserEventHandlers.create.push(function() {
