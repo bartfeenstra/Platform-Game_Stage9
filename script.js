@@ -14,14 +14,14 @@ var Smc = {
     // The human team Phaser group object.
     humanTeam: null,
     // The enemy team Phaser group object.
-    enemyTeam: null
+    enemyTeam: null,
+    // The Phaser game (Phaser.Game).
+    game: new Phaser.Game(640,480, Phaser.AUTO, 'world', {
+        preload: buildPhaserEventHandler("preload"),
+        create: buildPhaserEventHandler("create"),
+        update: buildPhaserEventHandler("update")
+    }),
 };
-
-var game = new Phaser.Game(640,480, Phaser.AUTO, 'world', {
-    preload: buildPhaserEventHandler("preload"),
-    create: buildPhaserEventHandler("create"),
-    update: buildPhaserEventHandler("update")
-});
 
 /**
  * A game player.
@@ -37,7 +37,7 @@ Smc.playerTypes.Player = function (name, phaserObject) {
     this._name = name;
     this._isMovingVertically = false;
     this._phaserObject = phaserObject;
-    game.physics.arcade.enable(this._phaserObject);
+    Smc.game.physics.arcade.enable(this._phaserObject);
     this._phaserObject.animations.add('front', ['front1', 'front2', 'front3', 'front4', 'front5', 'front6', 'front7', 'front8', 'front9']);
     this._phaserObject.animations.add('left', ['left1', 'left2', 'left3', 'left4', 'left5', 'left6', 'left7', 'left8', 'left9']);
     this._phaserObject.animations.add('right', ['right1', 'right2','right3', 'right4','right5', 'right6','right7', 'right8', 'right9']);
@@ -45,14 +45,14 @@ Smc.playerTypes.Player = function (name, phaserObject) {
     this._phaserObject.body.collideWorldBounds = true;
     this._phaserObject.anchor.setTo(0.5, 0.5);
 
-    this._weaponMountPhaserObject = game.add.sprite( 600,480, 'pixel');
-    game.physics.arcade.enable(this._weaponMountPhaserObject);
+    this._weaponMountPhaserObject = Smc.game.add.sprite( 600,480, 'pixel');
+    Smc.game.physics.arcade.enable(this._weaponMountPhaserObject);
     this._weaponMountPhaserObject.body.enable          = true;
     this._weaponMountPhaserObject.body.allowRotation   = true;
 
     //  Creates 30 bullets, using the 'bullet' graphic
-    this._weaponPhaserObject = game.add.weapon(30, 'bullet');
-    game.physics.arcade.enable(this._weaponPhaserObject);
+    this._weaponPhaserObject = Smc.game.add.weapon(30, 'bullet');
+    Smc.game.physics.arcade.enable(this._weaponPhaserObject);
     //  The bullet will be automatically killed when it leaves the world bounds
     this._weaponPhaserObject.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
     //  The speed at which the bullet is fired
@@ -72,10 +72,10 @@ Smc.playerTypes.Player = function (name, phaserObject) {
     this._healthHud.bar.anchor.setTo(0.5, 0.5);
     this._phaserObject.addChild(this._healthHud.bar);
 
-    game.physics.arcade.enable(this._phaserObject)
+    Smc.game.physics.arcade.enable(this._phaserObject)
 
     // Set up the trail blaze.
-    this._trailBlazeEmitter = game.add.emitter(game.world.centerX, game.world.centerY, 400);
+    this._trailBlazeEmitter = Smc.game.add.emitter(Smc.game.world.centerX, Smc.game.world.centerY, 400);
     this._trailBlazeEmitter.makeParticles( [ 'fire1', 'fire2', 'fire3', 'smoke' ] );
     this._trailBlazeEmitter.gravity = 800;
     this._trailBlazeEmitter.setAlpha(1, 0, 3000);
@@ -130,7 +130,7 @@ Smc.playerTypes.Player.prototype = {
             this._phaserObject.x = this._phaserObject.x + 5;
         }
         this._phaserObject.animations.play('right', 2, true);
-        this._weaponMountPhaserObject.x = x;
+        this._weaponMountPhaserObject.x = game.width/2;
         this._weaponMountPhaserObject.angle = 0;
         this._onMove();
     },
@@ -205,7 +205,7 @@ Smc.playerTypes.Player.prototype = {
                 if (!(Smc.players[playerName] instanceof playerType)) {
                     continue;
                 }
-                game.physics.arcade.collide(Smc.players[playerName].getPhaserObject(), player._weaponPhaserObject.bullets, function(enemyPhaserObject, bulletPhaserObject) {
+                Smc.game.physics.arcade.collide(Smc.players[playerName].getPhaserObject(), player._weaponPhaserObject.bullets, function(enemyPhaserObject, bulletPhaserObject) {
                     Smc.players[enemyPhaserObject.name].hit();
                     bulletPhaserObject.kill();
                 }, null, player);
@@ -243,20 +243,20 @@ Smc.playerTypes.HumanPlayer = function(name, phaserObject, upKey, downKey, leftK
             return;
         }
 
-        if (game.input.keyboard.isDown(upKey)) {
-            student.moveUp();
+        if (Smc.game.input.keyboard.isDown(upKey)) {
+            player.moveUp();
         }
-        if (game.input.keyboard.isDown(downKey)) {
-            student.moveDown();
+        if (Smc.game.input.keyboard.isDown(downKey)) {
+            player.moveDown();
         }
-        if (game.input.keyboard.isDown(leftKey)) {
-            student.moveLeft();
+        if (Smc.game.input.keyboard.isDown(leftKey)) {
+            player.moveLeft();
         }
-        if (game.input.keyboard.isDown(rightKey)) {
-            student.moveRight();
+        if (Smc.game.input.keyboard.isDown(rightKey)) {
+            player.moveRight();
         }
-        if (game.input.keyboard.isDown(fireKey)) {
-            student.fireWeapon();
+        if (Smc.game.input.keyboard.isDown(fireKey)) {
+            player.fireWeapon();
         }
 
     });
@@ -270,7 +270,7 @@ Smc.playerTypes.HumanPlayer.prototype = {
  * @constructor
  */
 Smc.playerTypes.Student = function() {
-    Smc.playerTypes.HumanPlayer.call(this, "student", game.add.sprite(600,480, 'student'), Phaser.Keyboard.UP, Phaser.Keyboard.DOWN, Phaser.Keyboard.LEFT, Phaser.Keyboard.RIGHT, Phaser.Keyboard.SPACEBAR);
+    Smc.playerTypes.HumanPlayer.call(this, "student", Smc.game.add.sprite(600,480, 'student'), Phaser.Keyboard.UP, Phaser.Keyboard.DOWN, Phaser.Keyboard.LEFT, Phaser.Keyboard.RIGHT, Phaser.Keyboard.SPACEBAR);
 };
 Smc.playerTypes.Student.prototype = {
     __proto__: Smc.playerTypes.HumanPlayer.prototype,
@@ -292,7 +292,7 @@ Smc.playerTypes.EnemyTeamPlayer.prototype = {
 
         // The enemy team can kill human team members by touching them.
         Smc.phaserEventHandlers.update.push(function() {
-            game.physics.arcade.collide(Smc.humanTeam, Smc.enemyTeam, function(humanTeamPlayerPhaserObject, enemyTeamPlayerPhaserObject) {
+            Smc.game.physics.arcade.collide(Smc.humanTeam, Smc.enemyTeam, function(humanTeamPlayerPhaserObject, enemyTeamPlayerPhaserObject) {
                 Smc.players[humanTeamPlayerPhaserObject.name].kill();
             }, null, this);
         });
@@ -304,7 +304,7 @@ Smc.playerTypes.EnemyTeamPlayer.prototype = {
  * @constructor
  */
 Smc.playerTypes.Mexican = function() {
-    Smc.playerTypes.EnemyTeamPlayer.call(this, "mexican", game.add.sprite( mexicanX, mexicanY, 'mexican'));
+    Smc.playerTypes.EnemyTeamPlayer.call(this, "mexican", Smc.game.add.sprite(200, 100, 'mexican'));
     this._phaserObject.body.immovable      = true;
 };
 Smc.playerTypes.Mexican.prototype = {
@@ -330,106 +330,89 @@ function buildPhaserEventHandler(eventName) {
     }
 }
 
-var cursors;
-
-var mexicanX = 200;
-var mexicanY= 100;
-var boxX = 200;
-var boxY = 250;
-var liftX = 400;
-var liftY = 250;
-var lift ;
-var student;
-var mexican;
-
-var x = game.width/2;
-var y = game.height/2;
-
 Smc.phaserEventHandlers.preload.push(function() {
 
-    game.load.image('fire1', 'assets/fire1.png');
-    game.load.image('fire2', 'assets/fire2.png');
-    game.load.image('fire3', 'assets/fire3.png');
-    game.load.image('smoke', 'assets/smoke-puff.png');
+    Smc.game.load.image('fire1', 'assets/fire1.png');
+    Smc.game.load.image('fire2', 'assets/fire2.png');
+    Smc.game.load.image('fire3', 'assets/fire3.png');
+    Smc.game.load.image('smoke', 'assets/smoke-puff.png');
 
-    game.load.image('pixel', 'assets/trans-pixel.png');
+    Smc.game.load.image('pixel', 'assets/trans-pixel.png');
 
-    game.load.image('bullet', 'assets/bullet.png');
-    game.load.image('box', 'assets/box.png');
-    game.load.image('lift', 'assets/lift.png');
-    game.load.image('background', 'assets/header.jpg');
-    game.load.atlasJSONHash('student', 'assets/student.png','assets/student.json');
-    game.load.atlasJSONHash('mexican', 'assets/mexican.png', 'assets/mexican.json');
+    Smc.game.load.image('bullet', 'assets/bullet.png');
+    Smc.game.load.image('box', 'assets/box.png');
+    Smc.game.load.image('lift', 'assets/lift.png');
+    Smc.game.load.image('background', 'assets/header.jpg');
+    Smc.game.load.atlasJSONHash('student', 'assets/student.png','assets/student.json');
+    Smc.game.load.atlasJSONHash('mexican', 'assets/mexican.png', 'assets/mexican.json');
 
-    game.load.image('pixel', 'assets/trans-pixel.png');
-    game.load.script('HudManager', 'plugins/HUDManager.js');
+    Smc.game.load.image('pixel', 'assets/trans-pixel.png');
+    Smc.game.load.script('HudManager', 'plugins/HUDManager.js');
 
-    game.load.image('arm', 'assets/arm.png');
-    game.load.image('pump', 'assets/pump.png');
-    game.load.image('weight', 'assets/weight.png');
+    Smc.game.load.image('arm', 'assets/arm.png');
+    Smc.game.load.image('pump', 'assets/pump.png');
+    Smc.game.load.image('weight', 'assets/weight.png');
 
 });
 
 Smc.phaserEventHandlers.create.push(function() {
-    game.physics.startSystem(Phaser.Physics.ARCADE);
-    game.stage.backgroundColor = '#333';
-    game.add.tileSprite(-400,-400, 2000, 1600, 'background');
+    Smc.game.physics.startSystem(Phaser.Physics.ARCADE);
+    Smc.game.stage.backgroundColor = '#333';
+    Smc.game.add.tileSprite(-400,-400, 2000, 1600, 'background');
 
-    box = game.add.sprite( boxX, boxY, 'box');
-    lift = game.add.sprite( liftX, liftY, 'lift');
+    var box = Smc.game.add.sprite(200, 250, 'box');
+    var lift = Smc.game.add.sprite(400, 250, 'lift');
 
-    game.physics.arcade.enable(box);
-    game.physics.arcade.enable(lift);
+    Smc.game.physics.arcade.enable(box);
+    Smc.game.physics.arcade.enable(lift);
     lift.body.collideWorldBounds = true;
     box.body.collideWorldBounds = true;
 
-    cursors = game.input.keyboard.createCursorKeys();
-
     // Enable Box2D physics
-    game.physics.startSystem(Phaser.Physics.BOX2D);
-    
-    game.physics.box2d.debugDraw.joints = true;
-    game.physics.box2d.gravity.y = 500;
-    game.physics.box2d.restitution = 0.7;
+    Smc.game.physics.startSystem(Phaser.Physics.BOX2D);
 
-    game.physics.box2d.setBoundsToWorld();
+    Smc.game.physics.box2d.debugDraw.joints = true;
+    Smc.game.physics.box2d.gravity.y = 500;
+    Smc.game.physics.box2d.restitution = 0.7;
+
+    Smc.game.physics.box2d.setBoundsToWorld();
 
     //  Create a static rectangle body for the ground. This gives us something solid to attach our crank to
-    var ground = new Phaser.Physics.Box2D.Body(this.game, null, game.world.centerX, 470, 0);
+    var ground = new Phaser.Physics.Box2D.Body(Smc.game, null, Smc.game.world.centerX, 470, 0);
     //setRectangle(width, height, offsetX, offsetY, rotation)
     ground.setRectangle(640, 20, 0, 0, 0);
 
     //  Tall skinny rectangle body for the crank
-    var crank = game.add.sprite( game.world.centerX, 310, 'weight');
+    var crank = Smc.game.add.sprite(Smc.game.world.centerX, 310, 'weight');
     crank.anchor.setTo(0.5, 0.5);
-    game.physics.box2d.enable(crank);
+    Smc.game.physics.box2d.enable(crank);
     crank.body.setCircle(crank.width / 2);
     //Revolute joint with motor enabled attaching the crank to the ground. This is where all the power for the slider crank comes from
-    game.physics.box2d.revoluteJoint(ground, crank, 0, -80, 0, 0, 250, 50, true);
-    
+    Smc.game.physics.box2d.revoluteJoint(ground, crank, 0, -80, 0, 0, 250, 50, true);
+
     //  Tall skinny rectangle body for the arm. Connects the crank to the piston
-    var arm = game.add.sprite( game.world.centerX, game.world.centerY, 'pump');
-    game.physics.box2d.enable(arm);
+    var arm = Smc.game.add.sprite(Smc.game.world.centerX, Smc.game.world.centerY, 'pump');
+    Smc.game.physics.box2d.enable(arm);
     arm.body.setRectangle(10, 179, 0, 0, 0);
     //arm.anchor.setTo(0, 0.5);
     //revolute joint to attach the crank to the arm
-    game.physics.box2d.revoluteJoint(crank, arm, 0, -30, 0, 60);
-    
+    Smc.game.physics.box2d.revoluteJoint(crank, arm, 0, -30, 0, 60);
+
     //  Square body for the piston. This will be pushed up and down by the crank
-    var piston = game.add.sprite( 0, 310, 'arm');
-    game.physics.box2d.enable(piston);
+    var piston = Smc.game.add.sprite( 0, 310, 'arm');
+    Smc.game.physics.box2d.enable(piston);
     piston.body.setRectangle(301, 112, 150, 0, 0);
     piston.anchor.setTo(0, 0.5);
     //revolute joint to join the arm and the piston
     // bodyA, bodyB, ax, ay, bx, by, motorSpeed, motorTorque, motorEnabled, lowerLimit, upperLimit, limitEnabled
-    game.physics.box2d.revoluteJoint(arm, piston, 0, -112, 0, 0);
+    Smc.game.physics.box2d.revoluteJoint(arm, piston, 0, -112, 0, 0);
     //prismatic joint between the piston and the ground, this joints purpose is just to restrict the piston from moving on the x axis
-    game.physics.box2d.prismaticJoint(ground, piston, 0, 1, 0, 0, 0, 0);
+    Smc.game.physics.box2d.prismaticJoint(ground, piston, 0, 1, 0, 0, 0, 0);
 
     // Set up handlers for mouse events
-    game.input.onDown.add(mouseDragStart, this);
-    game.input.addMoveCallback(mouseDragMove, this);
-    game.input.onUp.add(mouseDragEnd, this);
+    Smc.game.input.onDown.add(mouseDragStart, this);
+    Smc.game.input.addMoveCallback(mouseDragMove, this);
+    Smc.game.input.onUp.add(mouseDragEnd, this);
 
 });
 
@@ -438,21 +421,21 @@ Smc.phaserEventHandlers.create.push(function() {
  */
 Smc.phaserEventHandlers.create.push(function() {
     // Create a team for human players. It may include computer-controlled team members as well.
-    Smc.humanTeam = game.add.group();
-    student = new Smc.playerTypes.Student();
+    Smc.humanTeam = Smc.game.add.group();
+    var student = new Smc.playerTypes.Student();
     Smc.humanTeam.add(student.getPhaserObject());
     Smc.humanTeam.enableBody = true;
-    game.physics.arcade.enable(Smc.humanTeam);
+    Smc.game.physics.arcade.enable(Smc.humanTeam);
 
     // Create the enemy team, that solely consists of computer-controlled players.
-    Smc.enemyTeam = game.add.group();
-    mexican = new Smc.playerTypes.Mexican();
+    Smc.enemyTeam = Smc.game.add.group();
+    var mexican = new Smc.playerTypes.Mexican();
     Smc.enemyTeam.add(mexican.getPhaserObject());
     Smc.enemyTeam.enableBody = true;
-    game.physics.arcade.enable(Smc.enemyTeam);
+    Smc.game.physics.arcade.enable(Smc.enemyTeam);
 });
 
 
-function mouseDragStart() { game.physics.box2d.mouseDragStart(game.input.mousePointer); }
-function mouseDragMove() { game.physics.box2d.mouseDragMove(game.input.mousePointer); }
-function mouseDragEnd() { game.physics.box2d.mouseDragEnd(); }
+function mouseDragStart() { Smc.game.physics.box2d.mouseDragStart(Smc.game.input.mousePointer); }
+function mouseDragMove() { Smc.game.physics.box2d.mouseDragMove(Smc.game.input.mousePointer); }
+function mouseDragEnd() { Smc.game.physics.box2d.mouseDragEnd(); }
