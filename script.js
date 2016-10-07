@@ -6,7 +6,8 @@ var Smc = {
     phaserEventHandlers: {
         preload: [],
         create: [],
-        update: []
+        update: [],
+        render: []
     },
     playerTypes: {},
     // The players (Smc.playerTypes.Player), keyed by their Phaser object names.
@@ -19,7 +20,8 @@ var Smc = {
     game: new Phaser.Game(640,480, Phaser.AUTO, 'world', {
         preload: buildPhaserEventHandler("preload"),
         create: buildPhaserEventHandler("create"),
-        update: buildPhaserEventHandler("update")
+        update: buildPhaserEventHandler("update"),
+        render: buildPhaserEventHandler("render")
     }),
 };
 
@@ -402,88 +404,50 @@ Smc.phaserEventHandlers.create.push(function() {
 });
 
 
-
-
-
 Smc.phaserEventHandlers.create.push(function() {
 
-// Enable Box2D physics
-Smc.game.physics.startSystem(Phaser.Physics.BOX2D);
+    // Enable Box2D physics
+    Smc.game.physics.startSystem(Phaser.Physics.BOX2D);
 
-Smc.game.physics.box2d.debugDraw.joints = true;
-Smc.game.physics.box2d.gravity.y = 500;
-Smc.game.physics.box2d.restitution = 0.7;
+    Smc.game.physics.box2d.debugDraw.joints = true;
+    Smc.game.physics.box2d.gravity.y = 500;
+    Smc.game.physics.box2d.restitution = 0.7;
 
-Smc.game.physics.box2d.setBoundsToWorld();
+    Smc.game.physics.box2d.setBoundsToWorld();
 
-//  Create a static rectangle body for the ground. This gives us something solid to attach our crank to
+    //  Create a static rectangle body for the ground. This gives us something solid to attach our crank to
     Smc.ground = new Phaser.Physics.Box2D.Body(Smc.game, null, Smc.game.world.centerX, 470, 0);
-//setRectangle(width, height, offsetX, offsetY, rotation)
+    //setRectangle(width, height, offsetX, offsetY, rotation)
     Smc.ground.setRectangle(640, 20, 0, 0, 0);
 
-//  Tall skinny rectangle body for the crank
+    //  Tall skinny rectangle body for the crank
     Smc.crank = Smc.game.add.sprite(Smc.game.world.centerX, 310, 'weight');
     Smc.crank.anchor.setTo(0.5, 0.5);
-Smc.game.physics.box2d.enable(Smc.crank);
+    Smc.game.physics.box2d.enable(Smc.crank);
     Smc.crank.body.setCircle(Smc.crank.width / 2);
-//Revolute joint with motor enabled attaching the crank to the ground. This is where all the power for the slider crank comes from
-Smc.game.physics.box2d.revoluteJoint(Smc.ground, Smc.crank, 0, -80, 0, 0, 250, 50, true);
+    //Revolute joint with motor enabled attaching the crank to the ground. This is where all the power for the slider crank comes from
+    Smc.game.physics.box2d.revoluteJoint(Smc.ground, Smc.crank, 0, -80, 0, 0, 250, 50, true);
 
-//  Tall skinny rectangle body for the arm. Connects the crank to the piston
+    //  Tall skinny rectangle body for the arm. Connects the crank to the piston
     Smc.arm = Smc.game.add.sprite(Smc.game.world.centerX, Smc.game.world.centerY, 'pump');
-Smc.game.physics.box2d.enable(Smc.arm);
+    Smc.game.physics.box2d.enable(Smc.arm);
     Smc.arm.body.setRectangle(10, 179, 0, 0, 0);
-//arm.anchor.setTo(0, 0.5);
-//revolute joint to attach the crank to the arm
-Smc.game.physics.box2d.revoluteJoint(Smc.crank, Smc.arm, 0, -30, 0, 60);
+    //arm.anchor.setTo(0, 0.5);
+    //revolute joint to attach the crank to the arm
+    Smc.game.physics.box2d.revoluteJoint(Smc.crank, Smc.arm, 0, -30, 0, 60);
 
-//  Square body for the piston. This will be pushed up and down by the crank
+    //  Square body for the piston. This will be pushed up and down by the crank
     Smc.piston = Smc.game.add.sprite( 0, 310, 'arm');
-Smc.game.physics.box2d.enable(Smc.piston);
+    Smc.game.physics.box2d.enable(Smc.piston);
     Smc.piston.body.setRectangle(301, 112, 150, 0, 0);
     Smc.piston.anchor.setTo(0, 0.5);
-//revolute joint to join the arm and the piston
-// bodyA, bodyB, ax, ay, bx, by, motorSpeed, motorTorque, motorEnabled, lowerLimit, upperLimit, limitEnabled
-Smc.game.physics.box2d.revoluteJoint(Smc.arm, Smc.piston, 0, -112, 0, 0);
-//prismatic joint between the piston and the ground, this joints purpose is just to restrict the piston from moving on the x axis
-Smc.game.physics.box2d.prismaticJoint(Smc.ground, Smc.piston, 0, 1, 0, 0, 0, 0);
-
-
-
+    //revolute joint to join the arm and the piston
+    // bodyA, bodyB, ax, ay, bx, by, motorSpeed, motorTorque, motorEnabled, lowerLimit, upperLimit, limitEnabled
+    Smc.game.physics.box2d.revoluteJoint(Smc.arm, Smc.piston, 0, -112, 0, 0);
+    //prismatic joint between the piston and the ground, this joints purpose is just to restrict the piston from moving on the x axis
+    Smc.game.physics.box2d.prismaticJoint(Smc.ground, Smc.piston, 0, 1, 0, 0, 0, 0);
 
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**
@@ -509,3 +473,8 @@ Smc.phaserEventHandlers.create.push(function() {
 function mouseDragStart() { Smc.game.physics.box2d.mouseDragStart(Smc.game.input.mousePointer); }
 function mouseDragMove() { Smc.game.physics.box2d.mouseDragMove(Smc.game.input.mousePointer); }
 function mouseDragEnd() { Smc.game.physics.box2d.mouseDragEnd(); }
+
+
+Smc.phaserEventHandlers.render.push(function() {
+    Smc.game.debug.box2dWorld();
+});
