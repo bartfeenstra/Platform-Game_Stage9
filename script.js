@@ -12,6 +12,12 @@ var Smc = {
     playerTypes: {},
     // The players (Smc.playerTypes.Player), keyed by their Phaser object names.
     players: [],
+    // A map of the game layers as Phaser group objects.
+    layers: {
+        background: null,
+        obstacles: null,
+        players: null,
+    },
     // The human team Phaser group object.
     humanTeam: null,
     // The enemy team Phaser group object.
@@ -228,14 +234,6 @@ Smc.playerTypes.Player.prototype = {
             }
         });
     },
-    collidesWithStuff: function(){
-        Smc.phaserEventHandlers.update.push(function() {
-            for (var playerName in Smc.players) {
-                Smc.game.physics.arcade.collide(Smc.players[playerName].getPhaserObject(), Smc.box);
-                Smc.game.physics.arcade.collide(Smc.players[playerName].getPhaserObject(), Smc.lift);
-            }
-        });
-    }
 
 };
 
@@ -246,7 +244,6 @@ Smc.playerTypes.Player.prototype = {
 Smc.playerTypes.HumanTeamPlayer = function(name, phaserObject) {
     Smc.playerTypes.Player.call(this, name, phaserObject);
     this.isEnemyOf(Smc.playerTypes.EnemyTeamPlayer);
-    this.collidesWithStuff();
 };
 Smc.playerTypes.HumanTeamPlayer.prototype = {
     __proto__: Smc.playerTypes.Player.prototype,
@@ -383,32 +380,73 @@ Smc.phaserEventHandlers.preload.push(function() {
 
 });
 
+/**
+ * Creates the object layers as Phaser groups.
+ */
+Smc.phaserEventHandlers.create.push(function() {
+    for (var layer_name in Smc.layers) {
+        var layer = Smc.game.add.group(null, layer_name, true, true);
+        Smc.game.physics.arcade.enable(layer);
+        Smc.layers[layer_name] = layer;
+    }
+
+    // Make players collide with obstacles.
+    Smc.phaserEventHandlers.update.push(function() {
+        Smc.game.physics.arcade.collide(Smc.layers.players, Smc.layers.obstacles);
+    });
+});
+
+/**
+ * Creates the world.
+ */
 Smc.phaserEventHandlers.create.push(function() {
     Smc.game.physics.startSystem(Phaser.Physics.ARCADE);
+    Smc.game.physics.startSystem(Phaser.Physics.BOX2D);
     Smc.game.stage.backgroundColor = '#333';
     Smc.game.add.tileSprite(-400,-400, 2000, 1600, 'background');
+});
 
+/**
+ * Handles mouse events.
+ */
+Smc.phaserEventHandlers.create.push(function() {
+    Smc.game.input.onDown.add(function () {
+        Smc.game.physics.box2d.mouseDragStart(Smc.game.input.mousePointer);
+    }, this);
+    Smc.game.input.addMoveCallback(function () {
+        Smc.game.physics.box2d.mouseDragMove(Smc.game.input.mousePointer);
+    }, this);
+    Smc.game.input.onUp.add(function() {
+        Smc.game.physics.box2d.mouseDragEnd();
+    }, this);
+});
+
+/**
+ * Creates the box obstacle.
+ */
+Smc.phaserEventHandlers.create.push(function() {
     Smc.box = Smc.game.add.sprite(200, 250, 'box');
-    Smc.lift = Smc.game.add.sprite(400, 250, 'lift');
-
+    Smc.layers.obstacles.add(Smc.box);
     Smc.game.physics.arcade.enable(Smc.box);
-    Smc.game.physics.arcade.enable(Smc.lift);
-    Smc.lift.body.collideWorldBounds = true;
     Smc.box.body.collideWorldBounds = true;
-
-    // Set up handlers for mouse events
-    Smc.game.input.onDown.add(mouseDragStart, this);
-    Smc.game.input.addMoveCallback(mouseDragMove, this);
-    Smc.game.input.onUp.add(mouseDragEnd, this);
 
 });
 
-
+/**
+ * Creates the lift obstacle.
+ */
 Smc.phaserEventHandlers.create.push(function() {
+    Smc.lift = Smc.game.add.sprite(400, 250, 'lift');
+    Smc.layers.obstacles.add(Smc.lift);
+    Smc.game.physics.arcade.enable(Smc.lift);
+    Smc.lift.body.collideWorldBounds = true;
 
-    // Enable Box2D physics
-    Smc.game.physics.startSystem(Phaser.Physics.BOX2D);
+});
 
+/**
+ * Creates the background pump.
+ */
+Smc.phaserEventHandlers.create.push(function() {
     Smc.game.physics.box2d.debugDraw.joints = true;
     Smc.game.physics.box2d.gravity.y = 500;
     Smc.game.physics.box2d.restitution = 0.7;
@@ -456,6 +494,7 @@ Smc.phaserEventHandlers.create.push(function() {
 Smc.phaserEventHandlers.create.push(function() {
     // Create a team for human players. It may include computer-controlled team members as well.
     Smc.humanTeam = Smc.game.add.group();
+    Smc.layers.players.add(Smc.humanTeam);
     Smc.student = new Smc.playerTypes.Student();
     Smc.humanTeam.add(Smc.student.getPhaserObject());
     Smc.humanTeam.enableBody = true;
@@ -463,17 +502,12 @@ Smc.phaserEventHandlers.create.push(function() {
 
     // Create the enemy team, that solely consists of computer-controlled players.
     Smc.enemyTeam = Smc.game.add.group();
+    Smc.layers.players.add(Smc.enemyTeam);
     Smc.mexican = new Smc.playerTypes.Mexican();
     Smc.enemyTeam.add(Smc.mexican.getPhaserObject());
     Smc.enemyTeam.enableBody = true;
     Smc.game.physics.arcade.enable(Smc.enemyTeam);
 });
-
-
-function mouseDragStart() { Smc.game.physics.box2d.mouseDragStart(Smc.game.input.mousePointer); }
-function mouseDragMove() { Smc.game.physics.box2d.mouseDragMove(Smc.game.input.mousePointer); }
-function mouseDragEnd() { Smc.game.physics.box2d.mouseDragEnd(); }
-
 
 Smc.phaserEventHandlers.render.push(function() {
     Smc.game.debug.box2dWorld();
